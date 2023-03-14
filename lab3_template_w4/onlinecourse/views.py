@@ -12,65 +12,57 @@ import logging
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
 
+# Create your views here.
+
+# Create authentication related views
+
+
 def registration_request(request):
     context = {}
-    # If it is a GET request, just render the registration page
     if request.method == 'GET':
         return render(request, 'onlinecourse/user_registration.html', context)
-    # If it is a POST request
     elif request.method == 'POST':
-        # Get user information from request.POST
+        # Check if user exists
         username = request.POST['username']
         password = request.POST['psw']
         first_name = request.POST['firstname']
         last_name = request.POST['lastname']
         user_exist = False
         try:
-            # Check if user already exists
             User.objects.get(username=username)
             user_exist = True
         except:
-            # If not, simply log this is a new user
             logger.debug("{} is new user".format(username))
-        # If it is a new user
         if not user_exist:
-            # Create user in auth_user table
             user = User.objects.create_user(username=username, first_name=first_name, last_name=last_name,
                                             password=password)
-            # Login the user and redirect to course list page
             login(request, user)
             return redirect("onlinecourse:popular_course_list")
         else:
+            context['message'] = "User already exists."
             return render(request, 'onlinecourse/user_registration.html', context)
+
 
 def login_request(request):
     context = {}
-    # Handles POST request
     if request.method == "POST":
-        # Get username and password from request.POST dictionary
         username = request.POST['username']
         password = request.POST['psw']
-        # Try to check if provide credential can be authenticated
         user = authenticate(username=username, password=password)
+        print(user)
         if user is not None:
-            # If user is valid, call login method to login current user
             login(request, user)
             return redirect('onlinecourse:popular_course_list')
         else:
-            # If not, return to login page again
+            context['message'] = "Invalid username or password."
             return render(request, 'onlinecourse/user_login.html', context)
     else:
         return render(request, 'onlinecourse/user_login.html', context)
 
-# Create authentication related views
-def logout_request(request):
-    # Get the user object based on session id in request
-    print("Log out the user `{}`".format(request.user.username))
-    # Logout user in the request
-    logout(request)
-    # Redirect user back to course list view
-    return redirect('onlinecourse:popular_course_list')
 
+def logout_request(request):
+    logout(request)
+    return redirect('onlinecourse:popular_course_list')
 
 
 # Add a class-based course list view
@@ -99,4 +91,3 @@ class EnrollView(View):
         course.total_enrollment += 1
         course.save()
         return HttpResponseRedirect(reverse(viewname='onlinecourse:course_details', args=(course.id,)))
-
